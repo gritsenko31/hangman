@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Hangman Game with Advanced Features</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f0f0f0;}
+  #word { font-size: 2em; letter-spacing: 10px; margin: 20px; }
+  #message { margin: 20px; font-weight: bold; font-size: 1.3em; min-height: 1.5em; }
+  #letters button { margin: 3px; padding: 10px; font-size: 1em; width: 40px; cursor: pointer; }
+  #letters button:disabled { background: #ccc; cursor: not-allowed; }
+  #errors, #score, #timer, #difficulty, #hint { margin-top: 10px; font-size: 1.2em; font-weight: bold; }
+  #restartBtn, #hintBtn { margin: 10px 5px; padding: 10px 20px; font-size: 1em; cursor: pointer; }
+  #difficulty select { font-size: 1em; padding: 5px; }
+  canvas { background: #fff; margin-top: 20px; border: 1px solid #ccc; }
+</style>
+</head>
+<body>
+
+<h1>Hangman Game</h1>
+
+<div id="difficulty">
+  Difficulty level:
+  <select id="difficultySelect">
+    <option value="7" selected>Easy (7 mistakes)</option>
+    <option value="5">Medium (5 mistakes)</option>
+    <option value="3">Hard (3 mistakes)</option>
+  </select>
+</div>
+
+<div id="timer">Time: 180 s</div>
+<div id="word">_ _ _ _</div>
+<div id="letters"></div>
+<div id="errors">Mistakes: 0 of 7</div>
+<div id="score">Score: 0</div>
+<div>
+  <button id="hintBtn">Hint (reveal letter with penalty)</button>
+</div>
+<div id="message"></div>
+<button id="restartBtn">Restart Game</button>
+
+<canvas id="hangmanCanvas" width="200" height="250"></canvas>
+
+<!-- Sounds -->
+<audio id="soundCorrect" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
+<audio id="soundWrong" src="https://actions.google.com/sounds/v1/cartoon/boing.ogg" preload="auto"></audio>
+<audio id="soundWin" src="https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg" preload="auto"></audio>
+<audio id="soundLose" src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg" preload="auto"></audio>
+
+<script>
+  const words = [
+  "able", "acid", "aged", "also", "area", "army", "away", "baby",
+  "back", "ball", "band", "bank", "base", "bath", "bear", "beat",
+  "been", "beer", "bell", "belt", "best", "bill", "bird", "blow",
+  "blue", "boat", "body", "bomb", "bond", "bone", "book", "boom",
+  "born", "boss", "both", "bowl", "bulk", "burn", "bush", "busy",
+  "call", "calm", "came", "camp", "card", "care", "case", "cash",
+  "cast", "cell", "chat", "chip", "city", "club", "coal", "coat",
+  "code", "cold", "come", "cook", "cool", "cope", "copy", "core",
+  "cost", "crew", "crop", "dark", "data", "date", "dawn", "days",
+  "dead", "deal", "dean", "dear", "debt", "deep", "deny", "desk",
+  "dial", "dick", "diet", "disc", "dish", "disk", "does", "done",
+  "door", "dose", "down", "draw", "drew", "drop", "drug", "dual",
+  "duke", "dust", "duty", "each", "earn", "ease", "east", "easy",
+  "edge", "else", "even", "ever", "evil", "exit", "face", "fact",
+  "fail", "fair", "fall", "farm", "fast", "fate", "fear", "feed",
+  "feel", "feet", "fell", "felt", "file", "fill", "film", "find",
+  "fine", "fire", "firm", "fish", "five", "flat", "flow", "food",
+  "foot", "ford", "form", "fort", "four", "free", "from", "fuel",
+  "full", "fund", "gain", "game", "gate", "gave", "gear", "gene",
+  "gift", "girl", "give", "glad", "goal", "goes", "gold", "golf",
+  "gone", "good", "gray", "grew", "grey", "grow", "gulf", "hair",
+  "half", "hall", "hand", "hang", "hard", "harm", "hate", "have",
+  "head", "hear", "heat", "held", "hell", "help", "here", "hero",
+  "high", "hill", "hire", "hold", "hole", "holy", "home", "hope",
+  "horn", "hour", "huge", "hung", "hunt", "hurt", "idea", "inch",
+  "into", "iron", "item", "jack", "jane", "jean", "john", "join",
+  "jump", "jury", "just", "keen", "keep", "kent", "kept", "kick",
+  "kill", "kind", "king", "knew", "know", "lack", "lady", "laid",
+  "lake", "land", "lane", "last", "late", "lead", "left", "less",
+  "life", "lift", "like", "line", "link", "list", "live", "load",
+  "loan", "lock", "logo", "long", "look", "lord", "lose", "loss",
+  "lost", "love", "luck", "made", "mail", "main", "make", "male",
+  "many", "mark", "mass", "matt", "meal", "mean", "meat", "meet",
+  "menu", "mere", "mike", "mile", "milk", "mill", "mind", "mine",
+  "miss", "mode", "mood", "moon", "more", "most", "move", "much",
+  "must", "name", "navy", "near", "neck", "need", "news", "next",
+  "nice", "nick", "nine", "none", "nose", "note", "okay", "once",
+  "only", "open", "oral", "over", "pace", "pack", "page", "paid",
+  "pain", "pair", "palm", "park", "part", "pass", "past", "path",
+  "peak", "pick", "pink", "pipe", "plan", "play", "plot", "plug",
+  "plus", "poll", "pool", "poor", "port", "post", "pull", "pure",
+  "push", "race", "rail", "rain", "rank", "rate", "read", "real",
+  "rear", "ride", "ring", "rise", "risk", "road", "rock", "role",
+  "roll", "roof", "room", "root", "rose", "rule", "rush", "ruth",
+  "safe", "said", "sake", "sale", "salt", "same", "sand", "save",
+  "seat", "seed", "seek", "seem", "seen", "self", "sell", "send",
+  "sent", "sept", "ship", "shop", "shot", "show", "shut", "sick",
+  "side", "sign", "site", "size", "skin", "slip", "slow", "snow",
+  "soft", "soil", "sold", "sole", "some", "song", "soon", "sort",
+  "soul", "spot", "star", "stay", "step", "stop", "such", "suit",
+  "sure", "take", "tale", "talk", "tall", "tank", "tape", "task",
+  "team", "tech", "tell", "tend", "term", "test", "text", "than",
+  "that", "them", "then", "they", "thin", "this", "thus", "time",
+  "tiny", "told", "tone", "tony", "took", "tool", "tour", "town",
+  "tree", "trip", "true", "tune", "turn", "twin", "type", "unit",
+  "upon", "used", "user", "vary", "vast", "very", "vice", "view",
+  "vote", "wage", "wait", "wake", "walk", "wall", "want", "ward",
+  "warm", "warn", "wash", "wave", "ways", "weak", "wear", "week",
+  "well", "went", "were", "west", "what", "when", "whom", "wide",
+  "wife", "wild", "will", "wind", "wine", "wing", "wire", "wise",
+  "wish", "with", "wood", "word", "wore", "work", "yard", "yeah",
+  "year", "your", "zero", "zone"
+];
+
+
+
+  let maxErrors = 7;
+  let errors = 0;
+  let guessedLetters = new Set();
+  let word = '';
+  let score = 0;
+  let timer = 180;
+  let timerInterval = null;
+  let gameOver = false;
+
+  const wordDiv = document.getElementById('word');
+  const messageDiv = document.getElementById('message');
+  const errorsDiv = document.getElementById('errors');
+  const scoreDiv = document.getElementById('score');
+  const lettersDiv = document.getElementById('letters');
+  const restartBtn = document.getElementById('restartBtn');
+  const canvas = document.getElementById('hangmanCanvas');
+  const ctx = canvas.getContext('2d');
+  const timerDiv = document.getElementById('timer');
+  const difficultySelect = document.getElementById('difficultySelect');
+  const hintBtn = document.getElementById('hintBtn');
+
+  const soundCorrect = document.getElementById('soundCorrect');
+  const soundWrong = document.getElementById('soundWrong');
+  const soundWin = document.getElementById('soundWin');
+  const soundLose = document.getElementById('soundLose');
+
+  function pickWord() {
+    return words[Math.floor(Math.random() * words.length)].toLowerCase();
+  }
+
+  function updateWord() {
+    let display = '';
+    for (let char of word) {
+      display += guessedLetters.has(char) ? char.toUpperCase() + ' ' : '_ ';
+    }
+    wordDiv.textContent = display.trim();
+  }
+
+  function createAlphabetButtons() {
+    lettersDiv.innerHTML = '';
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+    for (let char of alphabet) {
+      const btn = document.createElement('button');
+      btn.textContent = char.toUpperCase();
+      btn.addEventListener('click', () => handleGuess(char, btn));
+      lettersDiv.appendChild(btn);
+    }
+  }
+
+  function handleGuess(char, btn) {
+    if (guessedLetters.has(char) || errors >= maxErrors || gameOver) return;
+
+    guessedLetters.add(char);
+
+    if (word.includes(char)) {
+      updateWord();
+      playSound(soundCorrect);
+      if (checkWin()) {
+        messageDiv.textContent = 'Congratulations! You won!';
+        score++;
+        scoreDiv.textContent = `Score: ${score}`;
+        gameOver = true;
+        playSound(soundWin);
+        disableButtons();
+        clearInterval(timerInterval);
+      }
+    } else {
+      errors++;
+      errorsDiv.textContent = `Mistakes: ${errors} of ${maxErrors}`;
+      drawHangman(errors);
+      playSound(soundWrong);
+      if (errors >= maxErrors) {
+        messageDiv.textContent = `You lost! The word was: ${word.toUpperCase()}`;
+        gameOver = true;
+        playSound(soundLose);
+        disableButtons();
+        updateWord();
+        clearInterval(timerInterval);
+      }
+    }
+
+    btn.disabled = true;
+  }
+
+  function checkWin() {
+    for (let char of word) {
+      if (!guessedLetters.has(char)) return false;
+    }
+    return true;
+  }
+
+  function disableButtons() {
+    const buttons = lettersDiv.querySelectorAll('button');
+    buttons.forEach(btn => btn.disabled = true);
+  }
+
+  restartBtn.addEventListener('click', startGame);
+  difficultySelect.addEventListener('change', () => {
+    maxErrors = Number(difficultySelect.value);
+    errorsDiv.textContent = `Mistakes: 0 of ${maxErrors}`;
+    startGame();
+  });
+  hintBtn.addEventListener('click', giveHint);
+
+  function startGame() {
+    word = pickWord();
+    errors = 0;
+    guessedLetters.clear();
+    gameOver = false;
+    timer = 180;
+    updateWord();
+    createAlphabetButtons();
+    errorsDiv.textContent = `Mistakes: 0 of ${maxErrors}`;
+    messageDiv.textContent = '';
+    scoreDiv.textContent = `Score: ${score}`;
+    timerDiv.textContent = `Time: ${timer} s`;
+    clearCanvas();
+    drawHangman(0);
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      if (gameOver) {
+        clearInterval(timerInterval);
+        return;
+      }
+      timer--;
+      timerDiv.textContent = `Time: ${timer} s`;
+      if (timer <= 0) {
+        messageDiv.textContent = `Time's up! The word was: ${word.toUpperCase()}`;
+        gameOver = true;
+        disableButtons();
+        playSound(soundLose);
+        updateWord();
+        clearInterval(timerInterval);
+      }
+    }, 1000);
+  }
+
+  function giveHint() {
+    if (gameOver) return;
+    const hiddenLetters = [...new Set(word)].filter(c => !guessedLetters.has(c));
+    if (hiddenLetters.length === 0) return;
+    const hintChar = hiddenLetters[Math.floor(Math.random() * hiddenLetters.length)];
+    guessedLetters.add(hintChar);
+    errors++;
+    errorsDiv.textContent = `Mistakes: ${errors} of ${maxErrors}`;
+    updateWord();
+    disableButtonByChar(hintChar);
+    drawHangman(errors);
+    playSound(soundWrong);
+    if (errors >= maxErrors) {
+      messageDiv.textContent = `You lost! The word was: ${word.toUpperCase()}`;
+      gameOver = true;
+      disableButtons();
+      clearInterval(timerInterval);
+    }
+  }
+
+  function disableButtonByChar(c) {
+    const buttons = lettersDiv.querySelectorAll('button');
+    buttons.forEach(btn => {
+      if (btn.textContent.toLowerCase() === c) btn.disabled = true;
+    });
+  }
+
+  function playSound(sound) {
+    sound.currentTime = 0;
+    sound.play();
+  }
+
+  function drawHangman(step) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#000';
+
+    if (step > 0) {
+      ctx.beginPath();
+      ctx.moveTo(10, 240);
+      ctx.lineTo(190, 240);
+      ctx.stroke();
+    }
+    if (step > 1) {
+      ctx.beginPath();
+      ctx.moveTo(50, 240);
+      ctx.lineTo(50, 20);
+      ctx.stroke();
+    }
+    if (step > 2) {
+      ctx.beginPath();
+      ctx.moveTo(50, 20);
+      ctx.lineTo(140, 20);
+      ctx.stroke();
+    }
+    if (step > 3) {
+      ctx.beginPath();
+      ctx.moveTo(140, 20);
+      ctx.lineTo(140, 50);
+      ctx.stroke();
+    }
+    if (step > 4) {
+      ctx.beginPath();
+      ctx.arc(140, 70, 20, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (step > 5) {
+      ctx.beginPath();
+      ctx.moveTo(140, 90);
+      ctx.lineTo(140, 150);
+      ctx.stroke();
+    }
+    if (step > 6) {
+      ctx.beginPath();
+      ctx.moveTo(140, 110);
+      ctx.lineTo(110, 130);
+      ctx.moveTo(140, 110);
+      ctx.lineTo(170, 130);
+      ctx.stroke();
+    }
+    if (step > 7) {
+      ctx.beginPath();
+      ctx.moveTo(140, 150);
+      ctx.lineTo(110, 190);
+      ctx.moveTo(140, 150);
+      ctx.lineTo(170, 190);
+      ctx.stroke();
+    }
+  }
+
+  function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  startGame();
+</script>
+
+</body>
+</html>
