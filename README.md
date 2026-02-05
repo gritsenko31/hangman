@@ -69,22 +69,6 @@ Guess the hidden word by selecting letters one at a time. You have 6 wrong guess
 
 Visit [vibecodegames.org/hangman](https://www.vibecodegames.org/hangman/) to play instantly.
 
-### Run Locally
-
-```bash
-# Clone the repository
-git clone https://github.com/gritsenko31/hangman.git
-
-# Navigate to directory
-cd hangman
-
-# Open in browser
-# Option 1: Double-click index.html
-# Option 2: Use local server
-python -m http.server 8000
-# Visit http://localhost:8000
-No build tools or dependencies required! 🎯
-
 📝 License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
