@@ -1,8 +1,4 @@
-Чудово! Готую лаконічний README для гри Hangman (Віселиця). 🎯
-
-📄 README.md
-text
-# 🎯 Hangman - Classic Word Guessing Game
+ 🎯 Hangman - Classic Word Guessing Game
 
 > Guess the hidden word letter by letter before the hangman is complete. Test your vocabulary and deduction skills!
 
